@@ -37,6 +37,9 @@ class SingleNode:
 			"regular", "output", or "input".
 		activation_func : function
 			The activation function of the node. Should have one input parameter.
+		recurrent_weight : float
+			How much of the previous raw activation of the neuron gets carried over 
+			for each timestep. (Only applies to internal nodes.)
 		'''
 
 		self.activations = np.array([init_activation])
@@ -89,6 +92,7 @@ class SingleNode:
 					weight = connection_weights[idx]
 					activation += weight * node_prev_activ
 				activation += self.recurrent_weight * self.raw_activations[self.timestep]
+				#Storing the raw activations prior to applying nonlinearity
 				self.raw_activations = np.append(self.raw_activations, activation)
 				activation = self.activation_func(activation)
 
@@ -123,10 +127,14 @@ class RNN:
 			to node row[1]. Indexing of the nodes starts from 0 and ends at num_nodes - 1.
 		num_outputs : int
 			Number of outputs for the network
-		feedback : bool
-			Whether or not to have feedback connections. 
+		feedback : bool or function
+			False if no feedback connections. Otherwise, some function of the previous output values.
+			For example, 
 		recurrent_weight : 1D numpy array of length num_nodes, or float
-			Weight of the recurrent connections.
+			Weights of the recurrent connections (prior to the nonlinearity). How much of the
+			previous raw activation carries over to the next activation - see integrate and fire
+			differential equation. Recurrent connections post-nonlinearity need to be added manually
+			as weights. 
 		inputs : list of functions
 			Defines what should be sent to each node as inputs at each timestep. Essentially
 			acts as a new input node which is connected to every other node in the network
@@ -144,9 +152,9 @@ class RNN:
 			from a uniform distribution between z1 and z2, ["randomNormal", [z1, z2]] 
 			which randomly initializes weights by sampling from a Gaussian with mean z1 and 
 			std z2, or ["constant", z] which initializes all weights to a constant
-			value of z. Weights can be internal or external. Internal weights mediate
-			node to node connections while the external weights mediate how the
-			node activations combine to generate the output.
+			value of z. Or ["manual", arr] to manually pass in weights for all internal, 
+			input, output and feedback (if feedback is True) edges. This array will assign
+			weights in the order of internal, input, output and feedback edge weights. 
 		init_activations : list (optional parameter)
 			Determines the initial activations of the nodes in the network. Same format as
 			init_weights.
@@ -159,11 +167,7 @@ class RNN:
 		self.num_input_nodes = len(inputs)
 		assert np.amax(edges) < self.num_internal_nodes, "Edge list has a node value out of range"
 		assert np.all(np.equal(np.mod(edges, 1), 0)), "All node values in edge list must integers from 0 to self.num_internal_nodes-1."
-		#Adding recurrent connections.
-		self.edges = edges
-		#recurrent_edges = np.array([range(self.num_internal_nodes), range(self.num_internal_nodes)]).T
-		#self.edges = np.concatenate((edges, recurrent_edges), axis = 0)
-		self.edges = self.edges.astype('int32')
+		self.edges = edges.astype('int32')
 		self.internal_edges = self.edges
 		#Adding input connections (modulated by input weights)
 		for i in range(self.num_input_nodes):
@@ -205,40 +209,40 @@ class RNN:
 		z = init_weights[1]
 		if init_weights[0] == "randomUniform":
 			internal_weights = np.random.uniform(low = z[0], high = z[1], size = self.internal_edges.shape[0])
-			#Setting weights of recurrent connections
-			#internal_weights[edges.shape[0]:] = recurrent_weight * np.ones(self.num_internal_nodes)
 			output_weights = np.random.uniform(low = z[0], high = z[1], 
 				size = self.num_internal_nodes * self.num_output_nodes)
 			input_weights = np.random.uniform(low = z[0], high = z[1], 
 				size = self.num_internal_nodes * self.num_input_nodes)
+			self.weights = np.concatenate((internal_weights, input_weights, output_weights))
 			if self.feedback:
 				feedback_weights = np.random.uniform(low = z[0], high = z[1], 
 					size = self.num_internal_nodes * self.num_output_nodes)
+				self.weights = np.concatenate((self.weights, feedback_weights))
 		elif init_weights[0] == "randomNormal":
 			internal_weights = np.random.normal(loc = z[0], scale = z[1], size = self.internal_edges.shape[0])
-			#Setting weights of recurrent connections
-			#internal_weights[edges.shape[0]:] = recurrent_weight * np.ones(self.num_internal_nodes)
 			output_weights = np.random.normal(loc = z[0], scale = z[1], 
 				size = self.num_internal_nodes * self.num_output_nodes)
 			input_weights = np.random.normal(loc = z[0], scale = z[1], 
 				size = self.num_internal_nodes * self.num_input_nodes)
+			self.weights = np.concatenate((internal_weights, input_weights, output_weights))
 			if self.feedback:
 				feedback_weights = np.random.normal(loc = z[0], scale = z[1], 
 					size = self.num_internal_nodes * self.num_output_nodes)
+				self.weights = np.concatenate((self.weights, feedback_weights))
 		elif init_weights[0] == "constant":
 			internal_weights = z * np.ones(self.internal_edges.shape[0])
-			#Setting weights of recurrent connections
-			#internal_weights[edges.shape[0]:] = recurrent_weight * np.ones(self.num_internal_nodes)
 			output_weights = z * np.ones(self.num_internal_nodes * self.num_output_nodes)
 			input_weights = z * np.ones(self.num_internal_nodes * self.num_input_nodes)
+			self.weights = np.concatenate((internal_weights, input_weights, output_weights))
 			if self.feedback:
 				feedback_weights = z * np.ones(size = self.num_internal_nodes * self.num_output_nodes)
+				self.weights = np.concatenate((self.weights, feedback_weights))
+		elif init_weights[0] == "manual":
+			self.weights = np.array(init_weights[1])
+			assert self.weights.size == self.edges.shape[0], "Wrong weight array shape"
 		else:
 			assert False, "Invalid Weight Initialization"
-
-		self.weights = np.concatenate((internal_weights, input_weights, output_weights))
-		if self.feedback:
-			self.weights = np.concatenate((self.weights, feedback_weights))
+			
 		#Initializing activation for each node in a numpy array.
 		z = init_activations[1]
 		if init_activations[0] == "randomUniform":
@@ -358,10 +362,7 @@ class RNN:
 		if curr_time % timesteps_per_update == 0 and curr_time >= timesteps_per_update:
 			for idx, node in enumerate(self.node_list):
 
-				#Nodes that send input to this node
-				node_connections_with_recurrence = self.edges[node.edge_indices][:, 0]
-				#Keeping recurrent connections
-				node_connections = node_connections_with_recurrence
+				node_connections = self.edges[node.edge_indices][:, 0]
 				indices = node.edge_indices
 				#Weights of the connections to this node
 				connection_weights = self.weights[indices]
