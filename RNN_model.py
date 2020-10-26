@@ -49,7 +49,7 @@ class SingleNode:
 		self.activation_func = activation_func
 		self.node_type = node_type
 		self.edge_indices = edge_indices
-		self.raw_activations = np.array([init_activation])
+		self.prev_raw_activation = init_activation
 		self.recurrent_weight = recurrent_weight
 
 	def get_activation(self, timestep):
@@ -91,9 +91,9 @@ class SingleNode:
 					node_prev_activ = self.recurrent_net.node_list[node_name].get_activation(self.timestep)
 					weight = connection_weights[idx]
 					activation += weight * node_prev_activ
-				activation += self.recurrent_weight * self.raw_activations[self.timestep]
+				activation += self.recurrent_weight * self.prev_raw_activation
 				#Storing the raw activations prior to applying nonlinearity
-				self.raw_activations = np.append(self.raw_activations, activation)
+				self.prev_raw_activation = activation
 				activation = self.activation_func(activation)
 
 		else:
