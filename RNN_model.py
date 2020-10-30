@@ -1,6 +1,5 @@
 import numpy as np
 from tqdm import tqdm
-import pickle
 
 '''
 This file is meant to implement a Recurrent Neural Network class 
@@ -271,7 +270,9 @@ class RNN:
 			 name = num, init_activation = 0,
 			  edge_indices = [], node_type = "feedback",
 			   activation_func = feedback_funcs[num]))
-		
+			
+		self.input_funcs = input_funcs
+		self.feedback_funcs = feedback_funcs
 		#Stores the weights of the network over time for training
 		self.weight_history = [compiled_weights]
 
