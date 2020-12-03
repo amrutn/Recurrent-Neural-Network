@@ -5,4 +5,5 @@ Based on the paper, "Generating Coherent Patterns of Activity from Chaotic Neura
 
 See the initial results at initial_results.pdf for more information. Also, look in the Test folder for implementation examples.
 
-Apart from analyzing the neural activity, I am also curious about whether having learned one task will make it easier for a network to learn a second task. There are a few ideas I have about how to accomplish such an analysis, including holding certain weights constant during the training periods, but they are not fully flushed out. 
+We are planning on training the network on tasks similar to those used in the paper, "Task representations in neural networks trained to
+perform many cognitive tasks" by Yang et. al. (2019). 
