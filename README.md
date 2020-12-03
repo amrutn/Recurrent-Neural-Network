@@ -1,5 +1,5 @@
 # Recurrent-Neural-Network
-Implementation of a general Recurrent Neural Network class with FORCE learning. To be used in conjunction with Dynamics Components Analysis to map its activity onto low-dimensional subspaces.
+Implementation of a general Recurrent Neural Network class with FORCE learning. We will use Dynamics Components Analysis and other statistical analysis techniques to map its activity onto low-dimensional subspaces and understand how network dynamics change during and after the training period.
 
 Based on the paper, "Generating Coherent Patterns of Activity from Chaotic Neural Networks" by Sussillo and Abbott, 2009
 
