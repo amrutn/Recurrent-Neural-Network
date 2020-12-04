@@ -15,7 +15,7 @@ class SingleNode:
 	depends on its incoming edges and activation history. 
 	'''
 	def __init__(self, recurrent_net, name, init_activation, edge_indices, node_type,
-	 activation_func = None, recurrent_weight = 0):
+	 activation_func = None, time_constant = 1, time_step = 0.2):
 		'''
 		Initializes a single node in the RNN. 
 
@@ -38,9 +38,11 @@ class SingleNode:
 			"internal", "output", "input" or "feedback".
 		activation_func : function
 			The activation function of the node. Should have one input parameter.
-		recurrent_weight : float
+		time_constant : float
 			How much of the previous raw activation of the neuron gets carried over 
-			for each timestep. (Only applies to internal nodes.)
+			for each timestep. (Only applies to internal nodes).
+		time_step : float
+			Timestep for updating the network nodes.
 		'''
 
 		self.activations = np.array([init_activation])
@@ -50,9 +52,8 @@ class SingleNode:
 		self.activation_func = activation_func
 		self.node_type = node_type
 		self.edge_indices = edge_indices
-		#Previous activation prior to nonlinearity (only for internalnodes)
-		self.prev_raw_activation = init_activation
-		self.recurrent_weight = recurrent_weight
+		self.time_step = time_step
+		self.time_constant = time_constant
 
 	def get_activation(self, timestep):
 		'''
@@ -76,12 +77,14 @@ class SingleNode:
 				node_activ = node.get_activation(self.timestep)
 				weight = connection_weights[idx]
 				activation += weight * node_activ
+			if self.activation_func != None:
+				activation = self.activation_func(activation)
 				
 		elif self.node_type == "input":
 			activation = self.activation_func(self.timestep + 1)
 
 		elif self.node_type == "internal":
-			activation = self.recurrent_weight * self.prev_raw_activation
+			activation = 0
 			#Adding up internal node presynaptic activations
 			if self.edge_indices.size > 0:
 				#Internal nodes that send signal to this node
@@ -112,10 +115,11 @@ class SingleNode:
 					node_prev_activ = node.get_activation(self.timestep)
 					weight = connection_weights[idx]
 					activation += weight * node_prev_activ
+			
+			multiplier = self.time_step/self.time_constant
+			activation = multiplier * self.activation_func(activation) + \
+			(1 - multiplier) * self.get_activation(self.timestep)
 
-			#Storing the raw activation prior to applying nonlinearity
-			self.prev_raw_activation = activation
-			activation = self.activation_func(activation)
 		elif self.node_type == "feedback":
 			activation = self.activation_func(self.recurrent_net)
 		else:
@@ -153,9 +157,10 @@ class RNN:
 	'''
 
 	def __init__(self, num_internal_nodes, init_activations, internal_edges,
-	 	internal_weights, num_outputs, output_weights, input_funcs = [], 
-		input_weights = np.array([[]]), recurrent_weight = 1, feedback_funcs = [], 
-		feedback_weights = np.array([[]]), activation_func = np.tanh):
+	 	internal_weights, num_outputs, output_weights, output_nonlinearity = None,
+	 	input_funcs = [], input_weights = np.array([[]]), time_constant = 1, time_step = 0.2,
+		feedback_funcs = [], feedback_weights = np.array([[]]),
+		activation_func = np.tanh):
 		'''
 		Initializes an instance of the RNN class. 
 
@@ -179,6 +184,8 @@ class RNN:
 			to an edge from each internal node. Each row is a set of weights for a
 			given output node, so the number of rows is num_outputs and number
 			of columns is num_internal_nodes.
+		output_nonlinearity : function
+			Function that applies nonlinearity to output value. 
 		input_funcs : list of functions
 			Defines what should be sent to each node as inputs at each timestep. 
 			If there is no input, the list can be left empty. Otherwise, a list of
@@ -190,11 +197,11 @@ class RNN:
 			List of functions of self.
 		feedback_weights : 2D numpy array
 			Feedback weights for each feedback function. Same format as output_weights 
-		recurrent_weight : 1D numpy array of length num_internal_nodes, or float
-			Weights of the recurrent connections (prior to the nonlinearity). How much of the
-			previous raw activation carries over to the next activation - see integrate and fire
-			differential equation. Recurrent connections post-nonlinearity need to be added manually
-			as weights. 
+		time_constant : 1D numpy array of length num_internal_nodes, or float
+			Time constants for each node of the network as defined by the leaky-integrate
+			and fire neuronal model.
+		time_step : float
+			Timestep for each update of the neural network.  
 		activation_type : function
 			Activation function for each node - should take in and return single float values.
 		'''
@@ -226,7 +233,6 @@ class RNN:
 		self.num_input_nodes = len(input_funcs)
 		self.num_feedback_nodes = len(feedback_funcs)
 		self.internal_edges = internal_edges.astype('int32')
-
 		#Initializing weights in a numpy array that has an element for each edge.
 		self.internal_weights = internal_weights
 		self.output_weights = output_weights
@@ -237,7 +243,7 @@ class RNN:
 			 feedback_weights.flatten()))
 		
 		#List of internal nodes
-		recurrent_weights = recurrent_weight * np.ones(self.num_internal_nodes)
+		time_constants = time_constant * np.ones(self.num_internal_nodes)
 		self.internal_node_list = []
 		for num in range(self.num_internal_nodes):
 			edge_indices = np.argwhere(self.internal_edges[:, 1] == num).T[0]
@@ -246,7 +252,7 @@ class RNN:
 			 name = num, init_activation = init_activations[num],
 			  edge_indices = edge_indices, node_type = "internal",
 			   activation_func = activation_func,
-			    recurrent_weight = recurrent_weights[num]))
+			    time_constant = time_constants[num], time_step = time_step))
 		
 		#List of input nodes
 		self.input_node_list = []
@@ -261,7 +267,8 @@ class RNN:
 		for num in range(self.num_output_nodes):
 			self.output_node_list.append(SingleNode(self,
 			 name = num, init_activation = 0,
-			  edge_indices = [], node_type = "output"))
+			  edge_indices = [], node_type = "output", 
+			  activation_func = output_nonlinearity))
 		
 		#List of feedback nodes
 		self.feedback_node_list = []
@@ -292,7 +299,7 @@ class RNN:
 	def get_output_activations(self):
 		'''
 		Returns the complete history of activations for all output nodes
-		as a 2D numpy array in same format as before.
+		as a 2D numpy array in same format as before. 
 		'''
 		combined_activations = []
 		for node in self.output_node_list:
@@ -358,141 +365,3 @@ class RNN:
 		'''
 		for t in tqdm(range(time), position = 0, leave = True):
 			self.next()
-
-	
-	def FORCE_train_next(self, function, num_iters, alpha = 1.0, timesteps_per_update = 3,
-	 train_output = 0, train_weights = {'internal' : True, 'input' : True,
-	  'output' : True, 'feedback' : True}):
-		'''
-		Trains all network weights using the Recursive Least Squares Algorithm. 
-
-		Params
-		------
-		function : function
-			Function to match output node to
-		num_iters : int
-			Number of completed training iterations
-		alpha : float
-			Inverse learning rate of the algorithm
-		timesteps_per_update : int
-			Number of timesteps to wait before updating weights
-		train_output : int
-			Which output node to train.
-		train_weights : Dictionary
-			Which weights to train from each set of edges. 
-			Requires four keys: 
-			'internal', 'input', 'output' and 'feedback'.
-			Values can be True or False
-			depending on whether or not those sets of weights
-			will be trained. 
-		''' 
-
-		curr_time = self.timestep
-		
-
-		error = np.copy(self.get_output_activations()[:, -1])[train_output]\
-		 - function(curr_time)
-
-		if curr_time % timesteps_per_update == 0 and curr_time >= timesteps_per_update:
-			
-			#Training internal nodes
-			for idx, node in enumerate(self.internal_node_list):
-				presynaptic_nodes = []
-				connection_weights = []
-				if train_weights['internal']:
-					edges_to_train = self.internal_edges[node.edge_indices][:, 0]
-					nodes_to_train = [self.internal_node_list[num] for num in edges_to_train]
-					presynaptic_nodes = nodes_to_train
-					connection_weights = self.internal_weights[node.edge_indices]
-				#Choosing input presynaptic nodes/weights
-				if train_weights['input'] and self.num_input_nodes > 0:
-					nodes_to_train = self.input_node_list
-					for pre_node in nodes_to_train:
-						presynaptic_nodes.append(pre_node)
-					connection_weights = np.concatenate((connection_weights,\
-					 self.input_weights[:, node.name]))
-
-				#Choosing feedback presynaptic nodes/weights
-				if train_weights['feedback'] and self.num_feedback_nodes > 0:
-					nodes_to_train = self.feedback_node_list
-					for pre_node in nodes_to_train:
-						presynaptic_nodes.append(pre_node)
-					connection_weights = np.concatenate((connection_weights,\
-					 self.feedback_weights[:, node.name]))
-				
-				if presynaptic_nodes == []:
-					continue
-				node_activations = []
-				for pre_node in presynaptic_nodes:
-					node_prev_activ = node.get_activation(pre_node.timestep)
-					node_activations.append(node_prev_activ)
-				node_activations = np.array(node_activations)
-				#Array of the inputs into each synapse
-				node_activations = np.array([node_activations]).T
-				if num_iters == 0:
-					P = 1/alpha * np.identity(node_activations.size)
-				else:
-					P = self.P_matrices_internal[idx]
-					P = P - (P @ node_activations @ node_activations.T @ P)/\
-					(1 + node_activations.T @ P @ node_activations)
-				self.P_matrices_internal[idx] = P
-				
-				connection_weights -= (error * P @ node_activations).T[0]
-
-				assert not np.isnan(np.sum(connection_weights)), 'Training failed to converge'
-				if train_weights['internal']:
-					self.internal_weights[node.edge_indices] =\
-					 connection_weights[0:node.edge_indices.size]
-					if connection_weights.size > node.edge_indices.size:
-						connection_weights = connection_weights[node.edge_indices.size:]
-				if train_weights['input'] and self.num_input_nodes > 0:
-					self.input_weights[:, node.name] = connection_weights[0:self.num_input_nodes]
-					if connection_weights.size > self.num_input_nodes:
-						connection_weights = connection_weights[self.num_input_nodes:]
-				if train_weights['feedback'] and self.num_feedback_nodes > 0:
-					self.feedback_weights[:, node.name] =\
-					 connection_weights[0:self.num_feedback_nodes]
-
-
-			#Training Output Nodes
-			if train_weights['output'] and self.num_output_nodes > 0:
-				for idx, node in enumerate(self.output_node_list):
- 
-					presynaptic_nodes = self.internal_node_list
-					connection_weights = self.output_weights[idx]
-
-					node_activations = []
-					for node in presynaptic_nodes:
-						node_prev_activ = node.get_activation(node.timestep)
-						node_activations.append(node_prev_activ)
-					node_activations = np.array(node_activations)
-					#Array of the inputs into each synapse
-					node_activations = np.array([node_activations]).T
-					if num_iters == 0:
-						P = 1/alpha * np.identity(node_activations.size)
-					else:
-						P = self.P_matrices_output[idx]
-						P = P - (P @ node_activations @ node_activations.T @ P)/\
-						(1 + node_activations.T @ P @ node_activations)
-					self.P_matrices_output[idx] = P
-					
-					connection_weights -= (error * P @ node_activations).T[0]
-					assert not np.isnan(np.sum(connection_weights)), 'Training failed to converge'
-					self.output_weights[idx] = connection_weights
-			
-			compiled_weights = np.concatenate((self.internal_weights, 
-				self.output_weights.flatten(), self.input_weights.flatten(),
-				self.feedback_weights.flatten())) 
-
-			self.weight_history.append(compiled_weights)
-		self.next()
-
-	def FORCE_train(self, time, function, alpha = 1.0, timesteps_per_update = 3, train_output = 0, 
-		train_weights = {'internal' : True, 'input' : True, 'output' : True, 'feedback' : True}):
-		'''
-		Same as FORCE_train_next, but FORCE trains for multiple timesteps. time is the number of
-		timesteps to continue training. All other inputs are the same. 
-		'''
-
-		for t in tqdm(range(time), position = 0, leave = True):
-			self.FORCE_train_next(function, t, alpha, timesteps_per_update, train_output, train_weights)
