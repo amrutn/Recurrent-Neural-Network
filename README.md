@@ -3,7 +3,7 @@ Implementations of a general Recurrent Neural Network classes that is trained wi
 
 Based on the paper, "Generating Coherent Patterns of Activity from Chaotic Neural Networks" by Sussillo and Abbott, 2009
 
-See the initial results at initial_results.pdf for more information. Also, look in the Test folder for implementation examples.
+See the initial results at RNN_model_FORCE.pdf for more information. Also, look in the Test folder for implementation examples.
 
 We are planning on training the network on tasks similar to those used in the paper, "Task representations in neural networks trained to
 perform many cognitive tasks" by Yang et. al. (2019). 
