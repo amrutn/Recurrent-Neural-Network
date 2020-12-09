@@ -32,9 +32,6 @@ class RNN:
 	self.output_weight_matrix : 2D array tensorflow constant
 		Weight matrix that represents how to add internal node
 		values to create each output. 
-	self.input_weight_matrix : 2D array tensorflow constant
-		Weight matrix that represents how to add inputs to each 
-		node.
 	self.activation : 1D array
 		1D array of current activations for nodes in the network.
 	self.activation_func : tensorflow activation function
@@ -47,13 +44,11 @@ class RNN:
 		neural network.
 	self.timestep : float 
 		timestep of the network.
-	self.input_funcs : list of functions
-		Returns value of inputs for each timestep. 
+
 	'''
 
 	def __init__(self, weight_matrix, connectivity_matrix, init_activations,
 	 	output_weight_matrix, output_nonlinearity = keras.activations.sigmoid,
-	 	input_funcs = [], input_weight_matrix = tf.constant([[]]),
 	 	time_constant = 1, timestep = 0.2, activation_func = keras.activations.softplus):
 		'''
 		Initializes an instance of the RNN class. 
@@ -73,10 +68,6 @@ class RNN:
 		assert weight_matrix.shape[0] == init_activations.shape[0]
 		assert len(output_weight_matrix.shape) == 2
 		assert output_weight_matrix.shape[1] == init_activations.shape[0]
-		assert len(input_weight_matrix.shape) == 2
-		assert input_weight_matrix.shape[1] == len(input_funcs)
-		if len(input_funcs) != 0:
-			assert input_weight_matrix.shape[0] == init_activations.shape[0]
 
 		#Setting attributes
 		self.weight_matrix = weight_matrix
@@ -84,51 +75,153 @@ class RNN:
 		where = tf.equal(self.connectivity_matrix, 0)
 		self.mask = tf.constant(where.numpy() * self.weight_matrix.numpy())
 		self.output_weight_matrix = output_weight_matrix
-		self.input_weight_matrix = input_weight_matrix
 		self.activation = tf.transpose(tf.constant([init_activations]))
 		self.activation_func = activation_func
 		self.output_nonlinearity = output_nonlinearity
 		self.time_const = time_constant
 		self.timestep = timestep
-		self.input_funcs = input_funcs
 
-
-	def set_inputs(self, new_input_funcs):
+	def set_weights(self, internal = None, output = None, connectivity = None):
 		'''
-		Changes input functions for each input node.
-		Takes in a list of input functions.
+		Sets weights of the network
 		'''
-		self.input_funcs = new_input_funcs
+		if internal != None:
+			self.weights = internal
+		if output != None:
+			self.output_weight_matrix = output
+		if connectivity != None:
+			self.connectivity_matrix = connectivity
+		where = tf.equal(self.connectivity_matrix, 0)
+		self.mask = tf.constant(where.numpy() * self.weight_matrix.numpy())
+		#Basic tests to ensure correct input shapes.
+		assert len(self.weight_matrix.shape) == 2
+		assert self.weight_matrix.shape == self.connectivity_matrix.shape
+		assert self.weight_matrix.shape[0] == self.weight_matrix.shape[1]
+		assert len(self.output_weight_matrix.shape) == 2
 
-	def simulate(self, time):
+
+	def simulate(self, time, input_funcs = [], input_weight_matrix = tf.constant([[]]),
+	 disable_progress_bar = False):
 		'''
 		Simulates timesteps of the network given by time.
 		time is equal to num_timesteps_simulated * self.timestep.
 		returns all node activations over time and outputs
 		over time. 
+
+		Params
+		------
+		time : float
+			Amount of time to simulate activity. The number of timesteps is given by
+			time/self.timestep
+		input_funcs : list of functions
+			Returns value of inputs for each time (not per timestep).
+		input_weight_matrix : 2D array tensorflow constant
+			Weight matrix that represents how to add inputs to each 
+			node.
 		'''
+
+		assert len(input_weight_matrix.shape) == 2
+		assert input_weight_matrix.shape[1] == len(input_funcs)
+		if len(input_funcs) != 0:
+			assert input_weight_matrix.shape[0] == self.activation.shape[0]
+
 		compiled_activations = []
 		compiled_outputs = []
 		num_timesteps = int(time//self.timestep)
 		c = self.timestep/self.time_const
-		for t in tqdm(range(num_timesteps), position = 0, leave = True):
+		for t in tqdm(range(num_timesteps), position = 0, leave = True, disable = disable_progress_bar):
 			curr = self.activation
 			inputs = 0
-			if len(self.input_funcs) != 0:
-				inputs = [func(t) for func in self.input_funcs]
+			if len(input_funcs) != 0:
+				inputs = [func(t * self.timestep) for func in input_funcs]
 				inputs = tf.transpose(tf.constant([inputs]))
 				inputs = tf.cast(inputs, 'float64')
-				add_inputs = tf.linalg.matmul(self.input_weight_matrix, inputs)
+				add_inputs = tf.linalg.matmul(input_weight_matrix, inputs)
 
 			nxt = (1 - c) * curr + c * self.activation_func(\
 				tf.linalg.matmul(self.weight_matrix, curr) + \
 				add_inputs)
 			self.activation = nxt
-			outputs = self.output_nonlinearity(tf.linalg.matmul(\
-				self.output_weight_matrix, nxt)).numpy().T[0]
-			curr_activation = self.activation.numpy().T[0]
+			outputs = tf.transpose(self.output_nonlinearity(tf.linalg.matmul(\
+				self.output_weight_matrix, nxt)))[0]
+			curr_activation = tf.transpose(self.activation)[0]
 			compiled_outputs.append(outputs)
 			compiled_activations.append(curr_activation)
 
-		return np.asarray(compiled_outputs), np.asarray(compiled_activations)
+		return compiled_outputs, compiled_activations
 
+	def l2_loss_func(self, target_functions, time, num_trials = 1, regularizer = None,
+	 input_funcs = [], input_weight_matrix = tf.constant([[]]), error_mask = 1):
+
+		'''
+		Computes loss function for the given weight matrix.
+
+		Params
+		------
+		weight_matrix : tensorflow variable 2D weight matrix
+			The weight matrix of the network
+		target_functions : list of functions
+			returns the target outputs at given times (not timesteps). Should have
+			same number of functions as the number of outputs. 
+		time : float
+			Amount of time (not timesteps) the training should simulate output. 
+		num_trials : int
+			number of trials to run the loss function. Is meant to get an average
+			output if the network has stochastic inputs. 
+		regularizer : function of the weight matrix (or None)
+			regularization term in the loss function. 
+		input_funcs : list of functions
+			returns the input at given time (not timestep).
+		input_weight_matrix : 2D tensorflow constant matrix
+			weight matrix for the inputs.
+		error_mask : float or 2D tensorflow constant matrix
+			Matrix of dimension num_timesteps x num_outputs. Defines
+			how to weight network activity for each timestep at each
+			output.
+		'''
+		if regularizer == None:
+			regularizer = lambda x : 0
+
+		num_outputs = self.output_weight_matrix.numpy().shape[0]
+		num_timesteps = int(time//self.timestep)
+		if error_mask == 1:
+			error_mask = np.ones((num_outputs, num_timesteps))
+		assert len(target_functions) == num_outputs
+
+		target = [[function(t * self.timestep) for t in range(num_timesteps)]\
+		 for function in target_functions]
+
+		target = tf.constant(target)
+		target = tf.cast(target, 'float64')
+		summed = 0
+		for trial in range(num_trials):
+			simulated, _ = self.simulate(time, input_funcs, input_weight_matrix, disable_progress_bar = True)
+			
+			l2 = 0
+			for sim_row, target_row, mask_row in zip(simulated, target, error_mask):
+				l2 += tf.reduce_sum((sim_row - target_row)**2 * mask_row)
+			term = 1/(num_outputs * num_timesteps) * l2
+			summed += tf.math.reduce_sum(term)
+			
+		return summed/num_trials + regularizer(self.weight_matrix)
+
+
+
+	def train(self, num_iters, target_functions, time, learning_rate = 0.001, num_trials = 1, regularizer = None,
+	 input_funcs = [], input_weight_matrix = tf.constant([[]]), error_mask = 1, epochs = 10):
+		'''
+		Trains the network using l2 loss. 
+		'''
+		weight_history = []
+		opt = keras.optimizers.Adam(learning_rate = learning_rate)
+		def loss():
+			return self.l2_loss_func(target_functions, time, num_trials, regularizer,\
+	 			input_funcs, input_weight_matrix, error_mask)
+
+		for iteration in tqdm(range(num_iters), position = 0, leave = True):
+			opt.minimize(loss, [self.weight_matrix])
+			if iteration % int(num_iters//epochs) == 0:
+				print("The loss is: " + str(loss()) + " at iteration " + str(iteration))
+			self.weight_matrix = tf.Variable(self.weight_matrix * self.connectivity_matrix + self.mask)
+			weight_history.append(self.weight_matrix)
+		return np.array(weight_history)
