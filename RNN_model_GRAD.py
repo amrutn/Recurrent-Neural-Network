@@ -32,8 +32,8 @@ class RNN:
 	self.output_weight_matrix : 2D array tensorflow constant
 		Weight matrix that represents how to add internal node
 		values to create each output. 
-	self.activation : 1D array
-		1D array of current activations for nodes in the network.
+	self.activation : 2D array
+		tensorflow column vector of current activations for nodes in the network.
 	self.activation_func : tensorflow activation function
 		tensorflow function representing the nonlinearity on each
 		internal node. 
@@ -56,30 +56,37 @@ class RNN:
 		Params
 		------
 		See Attributes above
-		init_activations : 1D numpy array
-			sets initial activations for each node of the network.
 		'''
 
 		#Basic tests to ensure correct input shapes.
 		assert len(weight_matrix.shape) == 2
 		assert weight_matrix.shape == connectivity_matrix.shape
 		assert weight_matrix.shape[0] == weight_matrix.shape[1]
-		assert len(init_activations.shape) == 1
+		assert len(init_activations.shape) == 2
 		assert weight_matrix.shape[0] == init_activations.shape[0]
 		assert len(output_weight_matrix.shape) == 2
 		assert output_weight_matrix.shape[1] == init_activations.shape[0]
 
+		#Ensuring correct dtype
+		weight_matrix = tf.Variable(tf.cast(weight_matrix, 'float32'))
+		connectivity_matrix = tf.constant(tf.cast(connectivity_matrix, 'float32'))
+		output_weight_matrix = tf.constant(tf.cast(output_weight_matrix, 'float32'))
+		init_activations = tf.constant(tf.cast(init_activations, 'float32'))
 		#Setting attributes
+		self.num_nodes = weight_matrix.shape[0]
 		self.weight_matrix = weight_matrix
 		self.connectivity_matrix = connectivity_matrix
 		where = tf.equal(self.connectivity_matrix, 0)
 		self.mask = tf.constant(where.numpy() * self.weight_matrix.numpy())
 		self.output_weight_matrix = output_weight_matrix
-		self.activation = tf.transpose(tf.constant([init_activations]))
+		self.activation = init_activations
 		self.activation_func = activation_func
 		self.output_nonlinearity = output_nonlinearity
 		self.time_const = time_constant
 		self.timestep = timestep
+
+	def reset_activations(self):
+		self.activation =tf.zeros([self.num_nodes, 1], dtype = tf.dtypes.float32)
 
 	def set_weights(self, internal = None, output = None, connectivity = None):
 		'''
@@ -120,11 +127,8 @@ class RNN:
 			node.
 		'''
 
-		assert len(input_weight_matrix.shape) == 2
-		assert input_weight_matrix.shape[1] == len(input_funcs)
-		if len(input_funcs) != 0:
-			assert input_weight_matrix.shape[0] == self.activation.shape[0]
-
+		if input_weight_matrix.dtype != tf.float32:
+			input_weight_matrix = tf.cast(input_weight_matrix, 'float32')
 		compiled_activations = []
 		compiled_outputs = []
 		num_timesteps = int(time//self.timestep)
@@ -135,9 +139,11 @@ class RNN:
 			if len(input_funcs) != 0:
 				inputs = [func(t * self.timestep) for func in input_funcs]
 				inputs = tf.transpose(tf.constant([inputs]))
-				inputs = tf.cast(inputs, 'float64')
+				if inputs.dtype != tf.float32:
+					inputs = tf.cast(inputs, 'float32')
 				add_inputs = tf.linalg.matmul(input_weight_matrix, inputs)
-
+			else:
+				add_inputs = 0
 			nxt = (1 - c) * curr + c * self.activation_func(\
 				tf.linalg.matmul(self.weight_matrix, curr) + \
 				add_inputs)
@@ -175,7 +181,7 @@ class RNN:
 		input_weight_matrix : 2D tensorflow constant matrix
 			weight matrix for the inputs.
 		error_mask : float or 2D tensorflow constant matrix
-			Matrix of dimension num_timesteps x num_outputs. Defines
+			Matrix of dimension num_outputs x num_timesteps. Defines
 			how to weight network activity for each timestep at each
 			output.
 		'''
@@ -188,18 +194,22 @@ class RNN:
 			error_mask = np.ones((num_outputs, num_timesteps))
 		assert len(target_functions) == num_outputs
 
-		target = [[function(t * self.timestep) for t in range(num_timesteps)]\
-		 for function in target_functions]
+		target = [[f(t * self.timestep) for t in range(num_timesteps)]\
+		 for f in target_functions]
 
 		target = tf.constant(target)
-		target = tf.cast(target, 'float64')
+		if target.dtype != tf.float32:
+			target = tf.cast(target, 'float32')
 		summed = 0
 		for trial in range(num_trials):
 			simulated, _ = self.simulate(time, input_funcs, input_weight_matrix, disable_progress_bar = True)
-			
+			self.reset_activations()
 			l2 = 0
-			for sim_row, target_row, mask_row in zip(simulated, target, error_mask):
-				l2 += tf.reduce_sum((sim_row - target_row)**2 * mask_row)
+			for o in range(num_outputs):
+				out_o = tf.transpose(simulated)[o]
+				target_o = target[o]
+				mask_o = error_mask[o]
+				l2 += tf.reduce_sum((out_o - target_o)**2 * mask_o)
 			term = 1/(num_outputs * num_timesteps) * l2
 			summed += tf.math.reduce_sum(term)
 			
@@ -222,6 +232,7 @@ class RNN:
 			opt.minimize(loss, [self.weight_matrix])
 			if iteration % int(num_iters//epochs) == 0:
 				print("The loss is: " + str(loss()) + " at iteration " + str(iteration))
-			self.weight_matrix = tf.Variable(self.weight_matrix * self.connectivity_matrix + self.mask)
-			weight_history.append(self.weight_matrix)
-		return np.array(weight_history)
+			self.weight_matrix = tf.Variable(tf.identity(self.weight_matrix) * \
+				self.connectivity_matrix + self.mask)
+			weight_history.append(tf.identity(self.weight_matrix))
+		return weight_history
