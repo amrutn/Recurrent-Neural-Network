@@ -149,7 +149,10 @@ weight_history, losses = network.train(num_iters, targets, time, num_trials = 1,
 
 net_weight_history['input high to low'] = np.asarray(weight_history).tolist()
 
-
+net_weight_history['bias'] = bias_weights.tolist()
+net_weight_history['noise weights'] = noise_weights.tolist()
+net_weight_history['input weights'] = input_weights.tolist()
+net_weight_history['connectivity matrix'] = np.asarray(connectivity_matrix).tolist()
 
 with open('weight_history.json', 'w') as f:
 	json.dump(net_weight_history, f)
