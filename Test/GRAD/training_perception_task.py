@@ -15,8 +15,7 @@ num_nodes = 128
 time_constant = 100 #ms
 timestep = 10 #ms
 noise_strength = .01
-q = .5
-num_inputs = 1
+num_inputs = 3
 
 connectivity_matrix = np.ones((num_nodes, num_nodes))
 weight_matrix = np.random.normal(0, 1.2/np.sqrt(num_nodes), (num_nodes, num_nodes))
@@ -153,6 +152,6 @@ net_weight_history['bias'] = bias_weights.tolist()
 net_weight_history['noise weights'] = noise_weights.tolist()
 net_weight_history['input weights'] = input_weights.tolist()
 net_weight_history['connectivity matrix'] = np.asarray(connectivity_matrix).tolist()
-
+net_weight_history['output weights'] = np.asarray(output_weight_matrix).tolist()
 with open('weight_history.json', 'w') as f:
 	json.dump(net_weight_history, f)
