@@ -250,9 +250,11 @@ class RNN:
 	def train(self, num_iters, targets, time, learning_rate = 0.001,
 	 num_trials = 1, regularizer = None, inputs = tf.constant([[]]),
 	  input_weight_matrix = tf.constant([[]]), error_mask = None,
-	   epochs = 10):
+	   epochs = 10, save = 1):
 		'''
 		Trains the network using l2 loss. See other functions for the definitions of the parameters.
+		The parameter save tells us how often to save the weights/loss of the network. A value of 10 would
+		result in the weights being saved every ten trials. 
 		'''
 		weight_history = []
 		losses = []
@@ -268,10 +270,11 @@ class RNN:
 		for iteration in tqdm(range(num_iters), position = 0, leave = True):
 			opt.minimize(loss, [self.weight_matrix])
 			loss_val = loss()
-			losses.append(loss_val)
 			if iteration % int(num_iters//epochs) == 0:
 				print("The loss is: " + str(loss_val) + " at iteration " + str(iteration))
 			self.weight_matrix = tf.Variable(tf.identity(self.weight_matrix) * \
 				self.connectivity_matrix + self.mask)
-			weight_history.append(tf.identity(self.weight_matrix))
+			if iteration % save == 0:
+				weight_history.append(tf.identity(self.weight_matrix))
+				losses.append(loss_val)
 		return weight_history, losses

@@ -70,7 +70,7 @@ input_funcs[2] = rule_input
 inputs = network.convert(time, input_funcs)
 
 weight_history, losses = network.train(num_iters, targets, time, num_trials = 1, inputs = inputs,
-              input_weight_matrix = input_weight_matrix, learning_rate = .001)
+              input_weight_matrix = input_weight_matrix, learning_rate = .001, save = 10)
 
 net_weight_history['input=.2'] = np.asarray(weight_history).tolist()
 #Training high input, low output
@@ -89,7 +89,7 @@ input_funcs[2] = rule_input
 inputs = network.convert(time, input_funcs)
 
 weight_history, losses = network.train(num_iters, targets, time, num_trials = 1, inputs = inputs,
-              input_weight_matrix = input_weight_matrix, learning_rate = .001)
+              input_weight_matrix = input_weight_matrix, learning_rate = .001, save = 10)
 
 net_weight_history['input=.8'] = np.asarray(weight_history).tolist()
 #Training on switching between low to high.
@@ -120,7 +120,7 @@ input_funcs[2] = rule_input
 inputs = network.convert(time, input_funcs)
 error_mask = network.convert(time, [error_mask_func])
 weight_history, losses = network.train(num_iters, targets, time, num_trials = 1, inputs = inputs,
-              input_weight_matrix = input_weight_matrix, learning_rate = .001, error_mask = error_mask)
+              input_weight_matrix = input_weight_matrix, learning_rate = .001, error_mask = error_mask, save = 10)
 
 net_weight_history['input low to high'] = np.asarray(weight_history).tolist()
 #Training on switching between high to low.
@@ -144,7 +144,7 @@ input_funcs[2] = rule_input
 inputs = network.convert(time, input_funcs)
 
 weight_history, losses = network.train(num_iters, targets, time, num_trials = 1, inputs = inputs,
-              input_weight_matrix = input_weight_matrix, learning_rate = .001, error_mask = error_mask)
+              input_weight_matrix = input_weight_matrix, learning_rate = .001, error_mask = error_mask, save = 10)
 
 net_weight_history['input high to low'] = np.asarray(weight_history).tolist()
 
