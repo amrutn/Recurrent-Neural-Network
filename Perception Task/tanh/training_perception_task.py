@@ -6,10 +6,10 @@ from RNN_model_GRAD import *
 import tensorflow as tf
 from tensorflow import keras
 import json
+from tqdm import tqdm
 
-net_num_iters = input("Enter num_iters for each training run separated by spaces: ")
-net_num_iters = net_num_iters.split(' ')
-net_num_iters = [int(num_iters) for num_iters in net_num_iters]
+num_iters = int(input("Enter number of training iterations: "))
+
 #Defining Network
 num_nodes = 128
 time_constant = 100 #ms
@@ -52,101 +52,50 @@ network = RNN(weight_matrix, connectivity_matrix, init_activations, output_weigh
 #Training Network
 net_weight_history = {}
 
-
-#Training low input, high output
-num_iters = net_num_iters[0]
-time = 5000 #ms
-
-def rule_input(time):
-    #running for 5 seconds = 5000ms, input =.2
-    return .2 + np.random.normal(0, .02)
-def target_func(time):
-    #running for 5 seconds = 5000ms, out = .8.
-    #Reverse of rule_input
-    return .8
-
-targets = network.convert(time, [target_func])
-input_funcs[2] = rule_input
-inputs = network.convert(time, input_funcs)
-
-weight_history, losses = network.train(num_iters, targets, time, num_trials = 1, inputs = inputs,
-              input_weight_matrix = input_weight_matrix, learning_rate = .001, save = 10)
-
-net_weight_history['input=.2'] = np.asarray(weight_history).tolist()
-#Training high input, low output
-num_iters = net_num_iters[1]
-time = 5000 #ms
-def rule_input(time):
-    #running for 5 seconds = 5000ms, input =.2
-    return .8 + np.random.normal(0, .02)
-def target_func(time):
-    #running for 5 seconds = 5000ms, out = .8.
-    #Reverse of rule_input
-    return .2
-
-targets = network.convert(time, [target_func])
-input_funcs[2] = rule_input
-inputs = network.convert(time, input_funcs)
-
-weight_history, losses = network.train(num_iters, targets, time, num_trials = 1, inputs = inputs,
-              input_weight_matrix = input_weight_matrix, learning_rate = .001, save = 10)
-
-net_weight_history['input=.8'] = np.asarray(weight_history).tolist()
-#Training on switching between low to high.
-num_iters = net_num_iters[2]
 time = 15000 #ms
-def rule_input(time):
-    #running for 15 seconds = 15000ms
-    if time < 15000/2:
-        return .2 + np.random.normal(0, .05)
-    else:
-        return .8 + np.random.normal(0, .05)
-def target_func(time):
-    #running for 15 seconds = 15000ms
-    if time < 15000/2:
-        return .8
-    else:
-        return .2
-def error_mask_func(time):
-    #Makes loss automatically 0 during switch for 100 ms.
-    #Also used in next training section. 
-    if time < 15000/2 + 50 and time > 15000/2 - 50:
-        return 0
-    else:
-        return 1
+def gen_functions():
+    switch_time = int(np.random.normal(time/2, time/10))
+    high = (np.random.uniform() > 0.5) * 1
+    low = 1 - high
 
-targets = network.convert(time, [target_func])
-input_funcs[2] = rule_input
-inputs = network.convert(time, input_funcs)
-error_mask = network.convert(time, [error_mask_func])
+    val1 = high * .8 + low * .2
+    val2 = high * .2 + low * .8
+    def rule_input(time):
+        #running for 15 seconds = 15000ms
+        if time < switch_time:
+            return val1 + np.random.normal(0, .05)
+        else:
+            return val2 + np.random.normal(0, .05)
+    def target_func(time):
+        #running for 15 seconds = 15000ms
+        if time < switch_time:
+            return val2
+        else:
+            return val1
+    def error_mask_func(time):
+        #Makes loss automatically 0 during switch for 100 ms.
+        #Also used in next training section. 
+        if time < switch_time + 50 and time > switch_time - 50:
+            return 0
+        else:
+            return 1
+    return rule_input, target_func, error_mask_func
+
+targets = []
+inputs = []
+error_masks = []
+print('Preprocessing...', flush = True)
+for iter in tqdm(range(num_iters), leave = True, position = 0):
+    rule_input, target_func, error_mask_func = gen_functions()
+    targets.append(network.convert(time, [target_func]))
+    input_funcs[2] = rule_input
+    inputs.append(network.convert(time, input_funcs))
+    error_masks.append(network.convert(time, [error_mask_func]))
+print('Training...', flush = True)
 weight_history, losses = network.train(num_iters, targets, time, num_trials = 1, inputs = inputs,
-              input_weight_matrix = input_weight_matrix, learning_rate = .001, error_mask = error_mask, save = 10)
+              input_weight_matrix = input_weight_matrix, learning_rate = .00025, error_mask = error_masks, save = 10)
 
-net_weight_history['input low to high'] = np.asarray(weight_history).tolist()
-#Training on switching between high to low.
-num_iters = net_num_iters[3]
-time = 15000 #ms
-def rule_input(time):
-    #running for 15 seconds = 15000ms
-    if time < 15000/2:
-        return .8 + np.random.normal(0, .05)
-    else:
-        return .2 + np.random.normal(0, .05)
-def target_func(time):
-    #running for 15 seconds = 15000ms
-    if time < 15000/2:
-        return .2
-    else:
-        return .8
-
-targets = network.convert(time, [target_func])
-input_funcs[2] = rule_input
-inputs = network.convert(time, input_funcs)
-
-weight_history, losses = network.train(num_iters, targets, time, num_trials = 1, inputs = inputs,
-              input_weight_matrix = input_weight_matrix, learning_rate = .001, error_mask = error_mask, save = 10)
-
-net_weight_history['input high to low'] = np.asarray(weight_history).tolist()
+net_weight_history['trained weights'] = np.asarray(weight_history).tolist()
 
 net_weight_history['bias'] = bias_weights.tolist()
 net_weight_history['noise weights'] = noise_weights.tolist()

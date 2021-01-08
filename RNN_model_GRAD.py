@@ -111,8 +111,8 @@ class RNN:
 		'''
 		Converts a list of input functions into
 		a matrix of different input values over time.
-		Makes it easier to create input and target matrices
-		for simulation and training of the network. 
+		 Makes it easier to create input and
+		target matrices for simulation and training of the network. 
 
 		Params
 		------
@@ -253,6 +253,8 @@ class RNN:
 	   epochs = 10, save = 1):
 		'''
 		Trains the network using l2 loss. See other functions for the definitions of the parameters.
+		For this function, instead of having one matrix as inputs/targets/error_mask, the user inputs
+		a sequence of matrices. One for each training iteration. This allows for stochasticity in training.
 		The parameter save tells us how often to save the weights/loss of the network. A value of 10 would
 		result in the weights being saved every ten trials. 
 		'''
@@ -262,16 +264,24 @@ class RNN:
 		if error_mask == None:
 			num_outputs = self.output_weight_matrix.numpy().shape[0]
 			num_timesteps = int(time//self.timestep)
-			error_mask = tf.cast(tf.constant(np.ones((num_timesteps, num_outputs))), 'float32')
+			tmperror_mask = tf.cast(tf.constant(np.ones((num_timesteps, num_outputs))), 'float32')
+		tmptargets = targets
+		tmpinputs = inputs
 		def loss():
-			return self.l2_loss_func(targets, time, num_trials, regularizer,\
-	 			inputs, input_weight_matrix, error_mask)
+			return self.l2_loss_func(tmptargets, time, num_trials, regularizer,\
+	 			tmpinputs, input_weight_matrix, tmperror_mask)
 
 		for iteration in tqdm(range(num_iters), position = 0, leave = True):
+			tmptargets = targets[iteration]
+			if len(inputs) != 0:
+				tmpinputs = inputs[iteration]
+			if error_mask != None:
+				tmperror_mask = error_mask[iteration]
+			
 			opt.minimize(loss, [self.weight_matrix])
 			loss_val = loss()
 			if iteration % int(num_iters//epochs) == 0:
-				print("The loss is: " + str(loss_val) + " at iteration " + str(iteration))
+				print("The loss is: " + str(loss_val) + " at iteration " + str(iteration), flush = True)
 			self.weight_matrix = tf.Variable(tf.identity(self.weight_matrix) * \
 				self.connectivity_matrix + self.mask)
 			if iteration % save == 0:
