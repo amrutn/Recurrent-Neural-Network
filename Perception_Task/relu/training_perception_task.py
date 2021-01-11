@@ -7,11 +7,11 @@ import tensorflow as tf
 from tensorflow import keras
 import json
 from tqdm import tqdm
+import os
 
 num_iters = int(input("Enter number of training iterations: "))
-
+num_nodes = int(input("Enter number of nodes: "))
 #Defining Network
-num_nodes = 8
 time_constant = 100 #ms
 timestep = 10 #ms
 noise_strength = .01
@@ -102,5 +102,8 @@ net_weight_history['noise weights'] = noise_weights.tolist()
 net_weight_history['input weights'] = input_weights.tolist()
 net_weight_history['connectivity matrix'] = np.asarray(connectivity_matrix).tolist()
 net_weight_history['output weights'] = np.asarray(output_weight_matrix).tolist()
-with open('weight_history.json', 'w') as f:
+
+if not os.path.isdir(str(num_nodes) + '_nodes'):
+    os.mkdir(str(num_nodes) + '_nodes')
+with open(str(num_nodes) + '_nodes/weight_history.json', 'w') as f:
     json.dump(net_weight_history, f)
