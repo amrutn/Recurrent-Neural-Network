@@ -15,10 +15,10 @@ num_nodes = int(input("Enter number of nodes: "))
 time_constant = 100 #ms
 timestep = 10 #ms
 noise_strength = .01
-num_inputs = 10
+num_inputs = 3
 
 connectivity_matrix = np.ones((num_nodes, num_nodes))
-weight_matrix = np.random.normal(0, 1.2/np.sqrt(num_nodes), (num_nodes, num_nodes))
+weight_matrix = np.random.normal(0, 1/np.sqrt(num_nodes), (num_nodes, num_nodes))
 for i in range(num_nodes):
     weight_matrix[i,i] = 0
     connectivity_matrix[i,i] = 0
@@ -27,24 +27,24 @@ connectivity_matrix = tf.constant(connectivity_matrix)
 
 noise_weights = 1 * np.ones(num_nodes)
 bias_weights = np.random.normal(0, 1/np.sqrt(num_inputs), num_nodes)
-input_weights = np.random.normal(0, 1/np.sqrt(num_inputs), (num_nodes, num_inputs - 2))
+input_weights = np.random.normal(0, 1/np.sqrt(num_inputs), num_nodes)
 
 input_weight_matrix = tf.constant(np.vstack((bias_weights, noise_weights, input_weights)))
 
 def rule_input(time):
     #No input for now
     return 0
-
+    
 def bias(time):
     return 1
 def noise(time):
     return np.sqrt(2 * time_constant/timestep) * noise_strength * np.random.normal(0, 1)
 
 
-input_funcs = [bias, noise] + [rule_input] * (num_inputs - 2)
+input_funcs = [bias, noise, rule_input]
 
 init_activations = tf.constant(np.zeros((num_nodes, 1)))
-output_weight_matrix = tf.constant(np.random.uniform(0, 1/np.sqrt(num_nodes), (2, num_nodes)))
+output_weight_matrix = tf.constant(np.random.uniform(0, 1/np.sqrt(num_nodes), (1, num_nodes)))
         
 network = RNN(weight_matrix, connectivity_matrix, init_activations, output_weight_matrix, time_constant = time_constant,
              timestep = timestep, activation_func = keras.activations.relu, output_nonlinearity = lambda x : x)
@@ -52,15 +52,14 @@ network = RNN(weight_matrix, connectivity_matrix, init_activations, output_weigh
 #Training Network
 net_weight_history = {}
 
-time = 20000 #ms
-sequences_list = np.arange(0, 8, 1)
-sequences = [[5,6,2,1], [5,4,2,3], [5,4,8,9], [5,6,8,7], [5,6,2,3], [5,4,2,1], [5,4,8,7], [5,6,8,9]]
-coordinates_dict = {1:(0.5,1.5), 2:(1,1.5), 3:(1.5,1.5), 4:(0.5, 1), 5:(1,1), 6:(1.5,1), 7:(0.5,0.5),\
-8:(1,0.5), 9:(1.5,0.5)}
-
+time = 15000 #ms
 def gen_functions():
-    seq_to_use = np.random.choice(sequences_list, 5)
+    switch_time = int(np.random.normal(time/2, time/10))
+    high = (np.random.uniform() > 0.5) * 1
+    low = 1 - high
 
+    val1 = high * .8 + low * -0.8
+    val2 = high * -.8 + low * .8
     def rule_input(time):
         #running for 15 seconds = 15000ms
         if time < switch_time:
