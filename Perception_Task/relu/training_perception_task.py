@@ -18,7 +18,7 @@ noise_strength = .01
 num_inputs = 3
 
 connectivity_matrix = np.ones((num_nodes, num_nodes))
-weight_matrix = np.random.normal(0, 1.2/np.sqrt(num_nodes), (num_nodes, num_nodes))
+weight_matrix = np.random.normal(0, 1/np.sqrt(num_nodes), (num_nodes, num_nodes))
 for i in range(num_nodes):
     weight_matrix[i,i] = 0
     connectivity_matrix[i,i] = 0
@@ -58,8 +58,8 @@ def gen_functions():
     high = (np.random.uniform() > 0.5) * 1
     low = 1 - high
 
-    val1 = high * .8 + low * .2
-    val2 = high * .2 + low * .8
+    val1 = high * .8 + low * -0.8
+    val2 = high * -.8 + low * .8
     def rule_input(time):
         #running for 15 seconds = 15000ms
         if time < switch_time:
