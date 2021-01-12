@@ -58,8 +58,8 @@ def gen_functions():
     high = (np.random.uniform() > 0.5) * 1
     low = 1 - high
 
-    val1 = high * .8 + low * .2
-    val2 = high * .2 + low * .8
+    val1 = high * .8 + low * .5
+    val2 = high * .5 + low * .8
     def rule_input(time):
         #running for 15 seconds = 15000ms
         if time < switch_time:
