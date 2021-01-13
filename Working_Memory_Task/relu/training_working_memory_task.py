@@ -115,6 +115,7 @@ net_weight_history['trained weights'] = np.asarray(weight_history).tolist()
 net_weight_history['bias'] = bias_weights.tolist()
 net_weight_history['noise weights'] = noise_weights.tolist()
 net_weight_history['input weights'] = input_weights.tolist()
+net_weight_history['prompt weights'] = prompt_weights.tolist()
 net_weight_history['connectivity matrix'] = np.asarray(connectivity_matrix).tolist()
 net_weight_history['output weights'] = np.asarray(output_weight_matrix).tolist()
 
