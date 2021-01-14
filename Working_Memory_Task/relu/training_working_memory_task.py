@@ -12,7 +12,7 @@ import os
 num_iters = int(input("Enter number of training iterations: "))
 num_nodes = int(input("Enter number of nodes: "))
 #Defining Network
-time_constant = 50 #ms
+time_constant = 100 #ms
 timestep = 5 #ms
 noise_strength = .01
 num_inputs = 4
