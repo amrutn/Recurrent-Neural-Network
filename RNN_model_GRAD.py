@@ -273,16 +273,17 @@ class RNN:
 		def loss():
 			return self.l2_loss_func(tmptargets, time, num_trials, regularizer,\
 	 			tmpinputs, input_weight_matrix, tmperror_mask)
-
+		targets_len = len(targets)
 		for iteration in tqdm(range(num_iters), position = 0, leave = True):
-			pick_vals = np.random.choice(np.arange(0, num_iters, 1), num_trials, replace = False)
+
+			#Randomly picking inputs/targets to use for this iteration
+			pick_vals = np.random.choice(np.arange(0, targets_len, 1), num_trials, replace = False)
 			tmptargets = []
 			if len(inputs) != 0:
 				tmpinputs = []
 			if error_mask != None:
 				tmperror_mask = []
 
-				
 			for val in pick_vals:
 				tmptargets.append(targets[val])
 				if len(inputs) != 0:
