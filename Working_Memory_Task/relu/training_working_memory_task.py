@@ -12,8 +12,8 @@ import os
 num_iters = int(input("Enter number of training iterations: "))
 num_nodes = int(input("Enter number of nodes: "))
 #Defining Network
-time_constant = 100 #ms
-timestep = 10 #ms
+time_constant = 50 #ms
+timestep = 5 #ms
 noise_strength = .01
 num_inputs = 4
 
@@ -62,21 +62,21 @@ def gen_functions():
     def rule_input(time):
         #running for 15 seconds = 15000ms
         if time < 1000:
-            return np.random.normal(0, .05)
+            return np.random.normal(0, .01)
         elif time >= 1000 and time < 2000:
-            return chosen_vals[0] + np.random.normal(0, .05)
+            return chosen_vals[0] + np.random.normal(0, .01)
         elif time >= 2000 and time < 2000 + wait_time:
-        	return np.random.normal(0, .05)
+        	return np.random.normal(0, .01)
         elif time >= 2000 + wait_time and time < 3000 + wait_time:
-        	return chosen_vals[1] + np.random.normal(0, .05)
+        	return chosen_vals[1] + np.random.normal(0, .01)
         else:
-        	return np.random.normal(0, .05)
+        	return np.random.normal(0, .01)
 
     def prompt(time):
     	if time < 3000 + wait_time:
-    		return np.random.normal(0, .05)
+    		return 0
     	else:
-    		return 1 + np.random.normal(0, .05)
+    		return 1
 
     def target_func(time):
         #running for 15 seconds = 15000ms
