@@ -225,20 +225,23 @@ class RNN:
 		num_outputs = self.output_weight_matrix.numpy().shape[0]
 		num_timesteps = int(time//self.timestep)
 
-		assert targets.shape[1] == num_outputs
-
-		if targets.dtype != tf.float32:
-			targets = tf.cast(targets, 'float32')
+		assert targets[0].shape[1] == num_outputs
 
 		summed = 0
 		for trial in range(num_trials):
+
+			curr_targets = targets[trial]
+			curr_error_mask = error_mask[trial]
+			curr_inputs = inputs[trial]
+			if curr_targets.dtype != tf.float32:
+				curr_targets = tf.cast(curr_targets, 'float32')
 			self.reset_activations()
-			simulated, _ = self.simulate(time, inputs, input_weight_matrix, disable_progress_bar = True)
+			simulated, _ = self.simulate(time, curr_inputs, input_weight_matrix, disable_progress_bar = True)
 			l2 = 0
 			for o in range(num_outputs):
 				out_o = tf.transpose(simulated)[o]
-				target_o = targets[:, o]
-				mask_o = error_mask[:, o]
+				target_o = curr_targets[:, o]
+				mask_o = curr_error_mask[:, o]
 				l2 += tf.reduce_sum((out_o - target_o)**2 * mask_o)
 			term = 1/(num_outputs * num_timesteps) * l2
 			summed += tf.math.reduce_sum(term)
@@ -264,19 +267,28 @@ class RNN:
 		if error_mask == None:
 			num_outputs = self.output_weight_matrix.numpy().shape[0]
 			num_timesteps = int(time//self.timestep)
-			tmperror_mask = tf.cast(tf.constant(np.ones((num_timesteps, num_outputs))), 'float32')
-		tmptargets = targets
-		tmpinputs = inputs
+			tmperror_mask = [tf.cast(tf.constant(np.ones((num_timesteps, num_outputs))), 'float32')]
+		tmptargets = [targets]
+		tmpinputs = [inputs]
 		def loss():
 			return self.l2_loss_func(tmptargets, time, num_trials, regularizer,\
 	 			tmpinputs, input_weight_matrix, tmperror_mask)
 
 		for iteration in tqdm(range(num_iters), position = 0, leave = True):
-			tmptargets = targets[iteration]
+			pick_vals = np.random.choice(np.arange(0, num_iters, 1), num_trials, replace = False)
+			tmptargets = []
 			if len(inputs) != 0:
-				tmpinputs = inputs[iteration]
+				tmpinputs = []
 			if error_mask != None:
-				tmperror_mask = error_mask[iteration]
+				tmperror_mask = []
+
+				
+			for val in pick_vals:
+				tmptargets.append(targets[val])
+				if len(inputs) != 0:
+					tmpinputs.append(inputs[val])
+				if error_mask != None:
+					tmperror_mask.append(error_mask[val])
 			
 			opt.minimize(loss, [self.weight_matrix])
 			loss_val = loss()
