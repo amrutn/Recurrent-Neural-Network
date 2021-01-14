@@ -81,7 +81,7 @@ def gen_functions():
     def target_func(time):
         #running for 15 seconds = 15000ms
         if time < 3000 + wait_time:
-            return 0
+            return 0.25
         else:
             return 0.5 * (chosen_vals[0] > chosen_vals[1]) + 1 * (chosen_vals[0] < chosen_vals[1]) +\
              .75 * (chosen_vals[0] == chosen_vals[1]) 
@@ -90,7 +90,7 @@ def gen_functions():
         #Makes loss automatically 0 during switch for 100 ms.
         #Also used in next training section. 
         if time < 3050 + wait_time:
-            return 0
+            return 0.1
         else:
             return 1
     return rule_input, prompt, target_func, error_mask_func
