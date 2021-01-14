@@ -55,7 +55,7 @@ network = RNN(weight_matrix, connectivity_matrix, init_activations, output_weigh
 vals = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
 #Training Network
 net_weight_history = {}
-time = 7000
+time = 10000
 def gen_functions():
     wait_time = int(np.random.uniform(2000, 3000))
     chosen_vals = np.random.choice(vals, 2)
@@ -90,7 +90,7 @@ def gen_functions():
         #Makes loss automatically 0 during switch for 100 ms.
         #Also used in next training section. 
         if time < 3050 + wait_time:
-            return 0.1
+            return 0
         else:
             return 1
     return rule_input, prompt, target_func, error_mask_func
