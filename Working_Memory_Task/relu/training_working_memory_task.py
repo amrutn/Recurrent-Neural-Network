@@ -90,7 +90,10 @@ def gen_functions():
     def error_mask_func(time):
         #Makes loss automatically 0 during switch for 100 ms.
         #Also used in next training section. 
-        return 1
+        if time < 3000 + wait_time:
+            return 0
+        else:
+            return 1
     return rule_input, target_func, error_mask_func #prompt
 
 targets = []
