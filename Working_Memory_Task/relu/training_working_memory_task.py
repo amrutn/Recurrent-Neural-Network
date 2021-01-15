@@ -97,7 +97,7 @@ targets = []
 inputs = []
 error_masks = []
 print('Preprocessing...', flush = True)
-for iter in tqdm(range(num_iters * 10), leave = True, position = 0):
+for iter in tqdm(range(num_iters * 50), leave = True, position = 0):
     rule_input, target_func, error_mask_func = gen_functions() #prompt
     input_funcs[2] = rule_input
     #input_funcs[3] = prompt
