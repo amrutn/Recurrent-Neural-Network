@@ -90,10 +90,7 @@ def gen_functions():
     def error_mask_func(time):
         #Makes loss automatically 0 during switch for 100 ms.
         #Also used in next training section. 
-        if time < 3050 + wait_time:
-            return 0
-        else:
-            return 1
+        return 1
     return rule_input, target_func, error_mask_func #prompt
 
 targets = []
@@ -108,7 +105,7 @@ for iter in tqdm(range(num_iters * 10), leave = True, position = 0):
     inputs.append(network.convert(time, input_funcs))
     error_masks.append(network.convert(time, [error_mask_func]))
 print('Training...', flush = True)
-weight_history, losses = network.train(num_iters, targets, time, num_trials = 25, inputs = inputs,
+weight_history, losses = network.train(num_iters, targets, time, num_trials = 50, inputs = inputs,
               input_weight_matrix = input_weight_matrix, learning_rate = .001, error_mask = error_masks, save = 1)
 
 net_weight_history['trained weights'] = np.asarray(weight_history).tolist()
