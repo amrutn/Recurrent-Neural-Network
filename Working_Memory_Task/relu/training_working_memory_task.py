@@ -51,14 +51,13 @@ output_weight_matrix = tf.constant(np.random.uniform(0, 1/np.sqrt(num_nodes), (1
         
 network = RNN(weight_matrix, connectivity_matrix, init_activations, output_weight_matrix, time_constant = time_constant,
              timestep = timestep, activation_func = keras.activations.relu, output_nonlinearity = lambda x : x)
-#Possible values to compare
-vals = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
+
 #Training Network
 net_weight_history = {}
 time = 10000
 def gen_functions():
     wait_time = int(np.random.uniform(2000, 3000))
-    chosen_vals = np.random.choice(vals, 2)
+    chosen_vals = np.random.uniform(0, 2, 2)
     def rule_input(time):
         #running for 15 seconds = 15000ms
         if time < 1000:
@@ -83,8 +82,7 @@ def gen_functions():
         if time < 3000 + wait_time:
             return 0.25
         else:
-            return 0.5 * (chosen_vals[0] > chosen_vals[1]) + 1 * (chosen_vals[0] < chosen_vals[1]) +\
-             .75 * (chosen_vals[0] == chosen_vals[1]) 
+            return 0.5 * (chosen_vals[0] > chosen_vals[1]) + 1 * (chosen_vals[0] < chosen_vals[1])
     
     def error_mask_func(time):
         #Makes loss automatically 0 during switch for 100 ms.
@@ -99,7 +97,7 @@ targets = []
 inputs = []
 error_masks = []
 print('Preprocessing...', flush = True)
-for iter in tqdm(range(num_iters * 5), leave = True, position = 0):
+for iter in tqdm(range(num_iters * 10), leave = True, position = 0):
     rule_input, prompt, target_func, error_mask_func = gen_functions()
     input_funcs[2] = rule_input
     input_funcs[3] = prompt
