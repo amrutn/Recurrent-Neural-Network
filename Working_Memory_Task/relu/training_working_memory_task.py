@@ -27,16 +27,16 @@ connectivity_matrix = tf.constant(connectivity_matrix)
 
 noise_weights = 1 * np.ones(num_nodes)
 bias_weights = np.random.normal(0, 1/np.sqrt(num_inputs), num_nodes)
-input1_weights = np.random.normal(0, 1/np.sqrt(num_inputs), num_nodes)/2
-input2_weights = np.random.normal(0, 1/np.sqrt(num_inputs), num_nodes)/2
+rule_input_weights = np.random.normal(0, 1/np.sqrt(num_inputs), num_nodes)/2
+prompt_weights = np.random.normal(0, 1/np.sqrt(num_inputs), num_nodes)/2
 
-input_weight_matrix = tf.constant(np.vstack((bias_weights, noise_weights, input1_weights, input2_weights)))
+input_weight_matrix = tf.constant(np.vstack((bias_weights, noise_weights, rule_input_weights, prompt_weights)))
 
-def input1(time):
+def rule_input(time):
     #No input for now
     return 0
 
-def input2(time):
+def prompt(time):
     #No input for now
     return 0
     
@@ -46,7 +46,7 @@ def noise(time):
     return np.sqrt(2 * time_constant/timestep) * noise_strength * np.random.normal(0, 1)
 
 
-input_funcs = [bias, noise, input1, input2]
+input_funcs = [bias, noise, rule_input, prompt]
 
 init_activations = tf.constant(np.zeros((num_nodes, 1)))
 output_weight_matrix = tf.constant(np.random.uniform(0, 1/np.sqrt(num_nodes), (1, num_nodes)))
@@ -60,19 +60,20 @@ time = 10000
 def gen_functions():
     wait_time = int(np.random.uniform(2000, 3000))
     chosen_vals = np.random.uniform(0, 2, 2)
-    def input1(time):
+    def rule_input(time):
         if time >= 1000 and time < 2000:
             return chosen_vals[0] + np.random.normal(0, .01)
-        else:
-        	return np.random.normal(0, .01)
-    def input2(time):
-        if time >= 2000 + wait_time and time < 3000 + wait_time:
+        elif time >= 2000 + wait_time and time < 3000 + wait_time:
         	return chosen_vals[1] + np.random.normal(0, .01)
         else:
         	return np.random.normal(0, .01)
+    def prompt(time):
+        if time < 3000 + wait_time:
+            return 0
+        else:
+            return 1
 
     def target_func(time):
-        #running for 15 seconds = 15000ms
         if time < 3000 + wait_time:
             return 0.25
         else:
@@ -85,16 +86,16 @@ def gen_functions():
             return 0
         else:
             return 1
-    return input1, input2, target_func, error_mask_func
+    return rule_input, prompt, target_func, error_mask_func
 
 targets = []
 inputs = []
 error_masks = []
 print('Preprocessing...', flush = True)
 for iter in tqdm(range(num_iters * 10), leave = True, position = 0):
-    input1, input2, target_func, error_mask_func = gen_functions()
-    input_funcs[2] = input1
-    input_funcs[3] = input2
+    rule_input, prompt, target_func, error_mask_func = gen_functions()
+    input_funcs[2] = rule_input
+    input_funcs[3] = prompt
     targets.append(network.convert(time, [target_func]))
     inputs.append(network.convert(time, input_funcs))
     error_masks.append(network.convert(time, [error_mask_func]))
@@ -106,8 +107,8 @@ net_weight_history['trained weights'] = np.asarray(weight_history).tolist()
 
 net_weight_history['bias'] = bias_weights.tolist()
 net_weight_history['noise weights'] = noise_weights.tolist()
-net_weight_history['input1 weights'] = input1_weights.tolist()
-net_weight_history['input2 weights'] = input2_weights.tolist()
+net_weight_history['trained weights'] = rule_input_weights.tolist()
+net_weight_history['prompt weights'] = prompt_weights.tolist()
 net_weight_history['connectivity matrix'] = np.asarray(connectivity_matrix).tolist()
 net_weight_history['output weights'] = np.asarray(output_weight_matrix).tolist()
 
