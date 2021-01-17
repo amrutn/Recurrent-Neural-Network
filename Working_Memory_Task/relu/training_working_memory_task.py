@@ -21,7 +21,7 @@ connectivity_matrix = np.ones((num_nodes, num_nodes))
 weight_matrix = np.random.normal(0, 1/np.sqrt(num_nodes), (num_nodes, num_nodes))
 for i in range(num_nodes):
     weight_matrix[i,i] = 0
-    connectivity_matrix[i,i] = 0
+    #connectivity_matrix[i,i] = 0
 weight_matrix = tf.Variable(weight_matrix)
 connectivity_matrix = tf.constant(connectivity_matrix)
 
