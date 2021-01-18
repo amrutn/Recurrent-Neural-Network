@@ -295,8 +295,8 @@ class RNN:
 			loss_val = loss()
 			if iteration % int(num_iters//epochs) == 0:
 				print("The loss is: " + str(loss_val) + " at iteration " + str(iteration), flush = True)
-			#self.weight_matrix = tf.Variable(tf.identity(self.weight_matrix) * \
-			#	self.connectivity_matrix + self.mask)
+			self.weight_matrix = tf.Variable(tf.identity(self.weight_matrix) * \
+				self.connectivity_matrix + self.mask)
 			if (iteration % save == 0) or (iteration == num_iters -1):
 				weight_history.append(tf.identity(self.weight_matrix))
 				losses.append(loss_val)
