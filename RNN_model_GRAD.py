@@ -270,9 +270,6 @@ class RNN:
 			tmperror_mask = [tf.cast(tf.constant(np.ones((num_timesteps, num_outputs))), 'float32')]
 		tmptargets = [targets]
 		tmpinputs = [inputs]
-		def loss():
-			return self.l2_loss_func(tmptargets, time, num_trials, regularizer,\
-	 			tmpinputs, input_weight_matrix, tmperror_mask)
 		targets_len = len(targets)
 		for iteration in tqdm(range(num_iters), position = 0, leave = True):
 
@@ -291,7 +288,8 @@ class RNN:
 				if error_mask != None:
 					tmperror_mask.append(error_mask[val])
 			with tf.GradientTape() as tape:
-				loss_val = loss()
+				loss_val = self.l2_loss_func(tmptargets, time, num_trials, regularizer,\
+					tmpinputs, input_weight_matrix, tmperror_mask)
 			grads=tape.gradient(loss_val, [self.weight_matrix])
 			opt.apply_gradients(zip(grads,[self.weight_matrix]))
 			#opt.minimize(loss, [self.weight_matrix])
