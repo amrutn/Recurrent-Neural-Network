@@ -29,7 +29,7 @@ connectivity_matrix = tf.constant(connectivity_matrix)
 noise_weights = 1 * np.ones(num_nodes)
 bias_weights = np.random.normal(0, 1/np.sqrt(num_inputs), num_nodes)
 input1_weights = np.random.normal(0, 1/np.sqrt(num_inputs), num_nodes)
-input2_weights=np.random.normal(0, 1/np.sqrt(num_inputs), num_nodes)
+input2_weights=input1_weights
 
 input_weight_matrix = tf.constant(np.vstack((bias_weights, noise_weights, input1_weights, input2_weights)))
 
