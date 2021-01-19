@@ -290,9 +290,12 @@ class RNN:
 					tmpinputs.append(inputs[val])
 				if error_mask != None:
 					tmperror_mask.append(error_mask[val])
+			with tf.GradientTape() as tape:
+				loss_val = loss()
+			grads=tape.gradient(loss_val, [self.weight_matrix])
+			opt.apply_gradients(zip(grads,[self.weight_matrix]))
+			#opt.minimize(loss, [self.weight_matrix])
 			
-			opt.minimize(loss, [self.weight_matrix])
-			loss_val = loss()
 			if iteration % int(num_iters//epochs) == 0:
 				print("The loss is: " + str(loss_val) + " at iteration " + str(iteration), flush = True)
 			#self.weight_matrix = tf.Variable(tf.identity(self.weight_matrix) * \
