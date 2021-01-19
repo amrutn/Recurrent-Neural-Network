@@ -249,7 +249,7 @@ class RNN:
 		return summed/num_trials + regularizer(self.weight_matrix)
 
 
-
+	@tf.function
 	def train(self, num_iters, targets, time, learning_rate = 0.001,
 	 num_trials = 1, regularizer = None, inputs = tf.constant([[]]),
 	  input_weight_matrix = tf.constant([[]]), error_mask = None,
