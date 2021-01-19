@@ -169,13 +169,11 @@ class RNN:
 
 		if input_weight_matrix != tf.constant([[]]):
 			add_inputs = tf.linalg.matmul(inputs, input_weight_matrix)
-		else:
-			add_inputs=0.0
 
 		for t in tqdm(range(num_timesteps), position = 0, leave = True, disable = disable_progress_bar):
 			curr = self.activation
 
-			add_inputs_t = 0.0
+			add_inputs_t = 0
 			if input_weight_matrix != tf.constant([[]]):	
 				add_inputs_t = tf.transpose([add_inputs[t]])
 				
@@ -251,17 +249,6 @@ class RNN:
 		return summed/num_trials + regularizer(self.weight_matrix)
 
 
-	@tf.function
-	def train_step(self, tmptargets, time, learning_rate = 0.001,
-	 num_trials = 1, regularizer = None, tmpinputs = tf.constant([[]]),
-	  input_weight_matrix = tf.constant([[]]), tmperror_mask = None):
-
-		with tf.GradientTape() as tape:
-			loss_val = self.l2_loss_func(tmptargets, time, num_trials, regularizer,\
-	 			tmpinputs, input_weight_matrix, tmperror_mask)
-		grads=tape.gradient(loss_val, [self.weight_matrix])
-		opt.apply_gradients(zip(grads,[self.weight_matrix]))
-		return loss_val
 
 	def train(self, num_iters, targets, time, learning_rate = 0.001,
 	 num_trials = 1, regularizer = None, inputs = tf.constant([[]]),
@@ -283,6 +270,9 @@ class RNN:
 			tmperror_mask = [tf.cast(tf.constant(np.ones((num_timesteps, num_outputs))), 'float32')]
 		tmptargets = [targets]
 		tmpinputs = [inputs]
+		def loss():
+			return self.l2_loss_func(tmptargets, time, num_trials, regularizer,\
+	 			tmpinputs, input_weight_matrix, tmperror_mask)
 		targets_len = len(targets)
 		for iteration in tqdm(range(num_iters), position = 0, leave = True):
 
@@ -300,8 +290,11 @@ class RNN:
 					tmpinputs.append(inputs[val])
 				if error_mask != None:
 					tmperror_mask.append(error_mask[val])
-			loss_val=self.train_step(tmptargets, time, learning_rate, 
-				num_trials, regularizer, tmpinputs, input_weight_matrix, tmperror_mask)
+			with tf.GradientTape() as tape:
+				loss_val = loss()
+			grads=tape.gradient(loss_val, [self.weight_matrix])
+			opt.apply_gradients(zip(grads,[self.weight_matrix]))
+			#opt.minimize(loss, [self.weight_matrix])
 			
 			if iteration % int(num_iters//epochs) == 0:
 				print("The loss is: " + str(loss_val) + " at iteration " + str(iteration), flush = True)

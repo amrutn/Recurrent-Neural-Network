@@ -52,7 +52,7 @@ init_activations = tf.constant(np.zeros((num_nodes, 1)))
 output_weight_matrix = tf.constant(np.random.uniform(0, 1/np.sqrt(num_nodes), (1, num_nodes)))
         
 network = RNN(weight_matrix, connectivity_matrix, init_activations, output_weight_matrix, time_constant = time_constant,
-             timestep = timestep, activation_func = keras.activations.relu, output_nonlinearity = lambda x : x)
+             timestep = timestep, activation_func = keras.activations.elu, output_nonlinearity = lambda x : x)
 
 #Training Network
 net_weight_history = {}
