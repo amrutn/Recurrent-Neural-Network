@@ -71,9 +71,9 @@ def gen_functions():
 
     def input2(time):
         if time >= 1000 and time < 2000:
-            return -chosen_vals[0] + np.random.normal(0, .01)
+            return 2-chosen_vals[0] + np.random.normal(0, .01)
         elif time >= 2000 + wait_time and time < 3000 + wait_time:
-            return -chosen_vals[1] + np.random.normal(0, .01)
+            return 2-chosen_vals[1] + np.random.normal(0, .01)
         else:
         	return np.random.normal(0, .01)
 
@@ -81,10 +81,10 @@ def gen_functions():
         if time < 3000 + wait_time:
             return 0
         else:
-            return 0 * (chosen_vals[0] > chosen_vals[1]) + 1 * (chosen_vals[0] < chosen_vals[1])
+            return 0.5 * (chosen_vals[0] > chosen_vals[1]) + 0.8 * (chosen_vals[0] < chosen_vals[1])
     
     def error_mask_func(time):
-        #Makes loss automatically 0 during switch for 100 ms.
+        #Makes loss automatically 0 before network decides
         #Also used in next training section. 
         if time < 3000 + wait_time:
             return 0
@@ -105,7 +105,7 @@ for iter in tqdm(range(num_iters * 10), leave = True, position = 0):
     error_masks.append(network.convert(time, [error_mask_func]))
 print('Training...', flush = True)
 weight_history, losses = network.train(num_iters, targets, time, num_trials = 10, inputs = inputs,
-              input_weight_matrix = input_weight_matrix, learning_rate = .001, epochs=50, error_mask = error_masks, save = 1)
+              input_weight_matrix = input_weight_matrix, learning_rate = .005, epochs=50, error_mask = error_masks, save = 1)
 
 net_weight_history['trained weights'] = np.asarray(weight_history).tolist()
 
