@@ -74,9 +74,9 @@ def gen_functions():
             return np.random.normal(0, .01)
     def input2(time):
         if time >= 1000 and time < 2000:
-            return 2-chosen_vals[0] + np.random.normal(0, .01)
+            return -chosen_vals[0] + np.random.normal(0, .01)
         elif time >= 2000 + wait_time and time < 3000 + wait_time:
-            return 2-chosen_vals[1] + np.random.normal(0, .01)
+            return -chosen_vals[1] + np.random.normal(0, .01)
         else:
         	return np.random.normal(0, .01)
     def prompt(time):
