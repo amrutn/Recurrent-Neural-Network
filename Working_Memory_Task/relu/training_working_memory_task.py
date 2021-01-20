@@ -49,7 +49,7 @@ def noise(time):
 input_funcs = [bias, noise, input1, input2]
 
 init_activations = tf.constant(np.zeros((num_nodes, 1)))
-output_weight_matrix = tf.constant(np.random.uniform(0, 1/np.sqrt(num_nodes), (1, num_nodes)))
+output_weight_matrix = tf.constant(np.random.uniform(0, 1/np.sqrt(num_nodes), (2, num_nodes)))
         
 network = RNN(weight_matrix, connectivity_matrix, init_activations, output_weight_matrix, time_constant = time_constant,
              timestep = timestep, activation_func = keras.activations.relu, output_nonlinearity = lambda x : x)
@@ -77,11 +77,17 @@ def gen_functions():
         else:
         	return np.random.normal(0, .01)
 
-    def target_func(time):
+    def target_func1(time):
         if time < 3000 + wait_time:
             return 0
         else:
-            return 0.5 * (chosen_vals[0] > chosen_vals[1]) + 0.8 * (chosen_vals[0] < chosen_vals[1])
+            return 0.8 * (chosen_vals[0] > chosen_vals[1])
+
+   def target_func2(time):
+        if time < 3000 + wait_time:
+            return 0
+        else:
+            return 0.8 * (chosen_vals[0] < chosen_vals[1])
     
     def error_mask_func(time):
         #Makes loss automatically 0 before network decides
@@ -90,7 +96,7 @@ def gen_functions():
             return 0
         else:
             return 1
-    return input1,input2, target_func, error_mask_func
+    return input1,input2, target_func1,target_func2, error_mask_func
 
 targets = []
 inputs = []
@@ -100,7 +106,7 @@ for iter in tqdm(range(num_iters * 10), leave = True, position = 0):
     input1,input2, target_func, error_mask_func = gen_functions()
     input_funcs[2] = input1
     input_funcs[3] = input2
-    targets.append(network.convert(time, [target_func]))
+    targets.append(network.convert(time, [target_func1, target_func2]))
     inputs.append(network.convert(time, input_funcs))
     error_masks.append(network.convert(time, [error_mask_func]))
 print('Training...', flush = True)
