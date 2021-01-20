@@ -119,7 +119,7 @@ for iter in tqdm(range(num_iters * 10), leave = True, position = 0):
     error_masks.append(network.convert(time, [error_mask_func1, error_mask_func2]))
 print('Training...', flush = True)
 weight_history, losses = network.train(num_iters, targets, time, num_trials = 10, inputs = inputs,
-              input_weight_matrix = input_weight_matrix, learning_rate = .00025, epochs=50, error_mask = error_masks, save = 1)
+              input_weight_matrix = input_weight_matrix, learning_rate = .0005, epochs=50, error_mask = error_masks, save = 1)
 
 net_weight_history['trained weights'] = np.asarray(weight_history).tolist()
 
