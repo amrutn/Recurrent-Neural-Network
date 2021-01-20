@@ -89,26 +89,34 @@ def gen_functions():
         else:
             return 0.8 * (chosen_vals[0] < chosen_vals[1])
     
-    def error_mask_func(time):
+    def error_mask_func1(time):
         #Makes loss automatically 0 before network decides
         #Also used in next training section. 
         if time < 3000 + wait_time:
             return 0
         else:
             return 1
-    return input1,input2, target_func1,target_func2, error_mask_func
+    def error_mask_func2(time):
+        #Makes loss automatically 0 before network decides
+        #Also used in next training section. 
+        if time < 3000 + wait_time:
+            return 0
+        else:
+            return 1
+
+    return input1,input2, target_func1,target_func2, error_mask_func1, error_mask_func2
 
 targets = []
 inputs = []
 error_masks = []
 print('Preprocessing...', flush = True)
 for iter in tqdm(range(num_iters * 10), leave = True, position = 0):
-    input1,input2, target_func1,target_func2, error_mask_func = gen_functions()
+    input1,input2, target_func1,target_func2, error_mask_func1, error_mask_func2 = gen_functions()
     input_funcs[2] = input1
     input_funcs[3] = input2
     targets.append(network.convert(time, [target_func1, target_func2]))
     inputs.append(network.convert(time, input_funcs))
-    error_masks.append(network.convert(time, [error_mask_func]))
+    error_masks.append(network.convert(time, [error_mask_func1, error_mask_func2]))
 print('Training...', flush = True)
 weight_history, losses = network.train(num_iters, targets, time, num_trials = 10, inputs = inputs,
               input_weight_matrix = input_weight_matrix, learning_rate = .00025, epochs=50, error_mask = error_masks, save = 1)
