@@ -83,7 +83,7 @@ def gen_functions():
         else:
             return 0.8 * (chosen_vals[0] > chosen_vals[1])
 
-   def target_func2(time):
+    def target_func2(time):
         if time < 3000 + wait_time:
             return 0
         else:
