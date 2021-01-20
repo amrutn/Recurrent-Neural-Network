@@ -103,7 +103,7 @@ inputs = []
 error_masks = []
 print('Preprocessing...', flush = True)
 for iter in tqdm(range(num_iters * 10), leave = True, position = 0):
-    input1,input2, target_func, error_mask_func = gen_functions()
+    input1,input2, target_func1,target_func2, error_mask_func = gen_functions()
     input_funcs[2] = input1
     input_funcs[3] = input2
     targets.append(network.convert(time, [target_func1, target_func2]))
