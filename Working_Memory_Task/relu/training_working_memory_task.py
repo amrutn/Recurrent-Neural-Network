@@ -79,30 +79,24 @@ def gen_functions():
 
     def target_func1(time):
         if time < 3000 + wait_time:
-            return 0
+            return 0.1
         else:
             return 0.8 * (chosen_vals[0] > chosen_vals[1])
 
     def target_func2(time):
         if time < 3000 + wait_time:
-            return 0
+            return 0.1
         else:
             return 0.8 * (chosen_vals[0] < chosen_vals[1])
     
     def error_mask_func1(time):
         #Makes loss automatically 0 before network decides
         #Also used in next training section. 
-        if time < 3000 + wait_time:
-            return 0
-        else:
-            return 1
+        return 1
     def error_mask_func2(time):
         #Makes loss automatically 0 before network decides
         #Also used in next training section. 
-        if time < 3000 + wait_time:
-            return 0
-        else:
-            return 1
+        return 1
 
     return input1,input2, target_func1,target_func2, error_mask_func1, error_mask_func2
 
@@ -134,3 +128,5 @@ if not os.path.isdir(str(num_nodes) + '_nodes'):
     os.mkdir(str(num_nodes) + '_nodes')
 with open(str(num_nodes) + '_nodes/weight_history.json', 'w') as f:
     json.dump(net_weight_history, f)
+
+
