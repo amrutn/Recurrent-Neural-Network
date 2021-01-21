@@ -267,7 +267,7 @@ class RNN:
 		if error_mask == None:
 			num_outputs = self.output_weight_matrix.numpy().shape[0]
 			num_timesteps = int(time//self.timestep)
-			tmperror_mask = [tf.cast(tf.constant(np.ones((num_timesteps, num_outputs))), 'float32')]
+			tmperror_mask = [tf.cast(tf.constant(np.ones((num_timesteps, num_outputs))), 'float32')]*num_trials
 		tmptargets = [targets]
 		tmpinputs = [inputs]
 		targets_len = len(targets)
