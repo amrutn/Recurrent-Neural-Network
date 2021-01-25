@@ -3,7 +3,7 @@ Implementations of a general Recurrent Neural Network classes that is trained wi
 
 Based on the papers, "full-FORCE: A target-based method for training recurrent networks" (2018), and "Generating Coherent Patterns of Activity from Chaotic Neural Networks" (2009) by Abbott et. al. Gradient descent method based on the paper "Training Excitatory-Inhibitory Recurrent Neural Networks for Cognitive Tasks: A Simple and Flexible Framework" (2016) by Song et. al.
 
-See the initial results at RNN_model_FORCE.pdf for more information. Also, look in the Test folder for implementation examples.
+See the initial results at Recurrent_Network_Decision_and_Perception.pdf for more information. Also, look in the Test folder for implementation examples.
 
 We are planning on training the network on tasks similar to those used in the paper, "Task representations in neural networks trained to
 perform many cognitive tasks" by Yang et. al. (2019). 
