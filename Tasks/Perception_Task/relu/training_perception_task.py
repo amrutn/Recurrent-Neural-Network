@@ -12,7 +12,7 @@ import os
 num_iters = int(input("Enter number of training iterations: "))
 num_nodes = int(input("Enter number of nodes: "))
 num_networks = int(input("Enter number of networks to train: "))
-for network_number in num_networks:
+for network_number in range(num_networks):
     #Defining Network
     time_constant = 100 #ms
     timestep = 10 #ms
