@@ -16,7 +16,7 @@ for network_number in range(num_networks):
     #Defining Network
     time_constant = 100 #ms
     timestep = 10 #ms
-    noise_strength = .01
+    noise_strength = 0
     num_inputs = 3
 
     connectivity_matrix = np.ones((num_nodes, num_nodes))
@@ -65,9 +65,9 @@ for network_number in range(num_networks):
         def rule_input(time):
             #running for 15 seconds = 15000ms
             if time < switch_time:
-                return val1 + np.random.normal(0, .05)
+                return val1 + np.random.normal(0, .005)
             else:
-                return val2 + np.random.normal(0, .05)
+                return val2 + np.random.normal(0, .005)
         def target_func(time):
             #running for 15 seconds = 15000ms
             if time < switch_time:
