@@ -65,9 +65,9 @@ for network_number in range(num_networks):
         def rule_input(time):
             #running for 15 seconds = 15000ms
             if time < switch_time:
-                return val1 + np.random.normal(0, .005)
+                return val1# + np.random.normal(0, .005)
             else:
-                return val2 + np.random.normal(0, .005)
+                return val2# + np.random.normal(0, .005)
         def target_func(time):
             #running for 15 seconds = 15000ms
             if time < switch_time:
