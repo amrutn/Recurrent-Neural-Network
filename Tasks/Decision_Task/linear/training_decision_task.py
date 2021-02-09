@@ -21,7 +21,7 @@ for network_number in range(num_networks):
 	num_inputs = 4
 
 	connectivity_matrix = np.ones((num_nodes, num_nodes))
-	weight_matrix = np.random.normal(0, 1.2/np.sqrt(num_nodes), (num_nodes, num_nodes))
+	weight_matrix = np.random.normal(0, .75/np.sqrt(num_nodes), (num_nodes, num_nodes))
 	for i in range(num_nodes):
 	    weight_matrix[i,i] = 0
 	    connectivity_matrix[i,i] = 0
