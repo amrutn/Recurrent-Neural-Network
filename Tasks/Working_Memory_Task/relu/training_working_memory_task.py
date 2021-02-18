@@ -19,10 +19,8 @@ noise_strength = .01
 num_inputs = 4
 
 connectivity_matrix = np.ones((num_nodes, num_nodes))
-weight_matrix = np.random.normal(0, 1/np.sqrt(num_nodes), (num_nodes, num_nodes))
-for i in range(num_nodes):
-    weight_matrix[i,i] = 0
-    connectivity_matrix[i,i] = 0
+weight_matrix = np.identity(num_nodes) * 0.5
+
 weight_matrix = tf.Variable(weight_matrix)
 connectivity_matrix = tf.constant(connectivity_matrix)
 
@@ -79,24 +77,24 @@ def gen_functions():
 
     def target_func1(time):
         if time < 3000 + wait_time:
-            return 0.1
+            return 0.5
         else:
             return 0.8 * (chosen_vals[0] > chosen_vals[1])
 
     def target_func2(time):
         if time < 3000 + wait_time:
-            return 0.1
+            return 0.5
         else:
             return 0.8 * (chosen_vals[0] < chosen_vals[1])
     
     def error_mask_func1(time):
         #Makes loss automatically 0 before network decides
         #Also used in next training section. 
-        return 1
+        return 5
     def error_mask_func2(time):
         #Makes loss automatically 0 before network decides
         #Also used in next training section. 
-        return 1
+        return 5
 
     return input1,input2, target_func1,target_func2, error_mask_func1, error_mask_func2
 
@@ -113,7 +111,7 @@ for iter in tqdm(range(num_iters * 10), leave = True, position = 0):
     error_masks.append(network.convert(time, [error_mask_func1, error_mask_func2]))
 print('Training...', flush = True)
 weight_history, losses = network.train(num_iters, targets, time, num_trials = 10, inputs = inputs,
-              input_weight_matrix = input_weight_matrix, learning_rate = .0005, epochs=50)#, error_mask = error_masks, save = 1)
+              input_weight_matrix = input_weight_matrix, learning_rate = .001, epochs=50, error_mask = error_masks, save = 5)
 
 net_weight_history['trained weights'] = np.asarray(weight_history).tolist()
 
