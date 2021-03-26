@@ -74,12 +74,12 @@ class RNN:
 		init_activations = tf.constant(tf.cast(init_activations, 'float32'))
 		#Setting attributes
 		self.num_nodes = weight_matrix.shape[0]
-		self.weight_matrix = weight_matrix
-		self.connectivity_matrix = connectivity_matrix
+		self.weight_matrix = tf.Variable(tf.identity(weight_matrix))
+		self.connectivity_matrix = tf.constant(tf.identity(connectivity_matrix))
 		where = tf.equal(self.connectivity_matrix, 0)
 		self.mask = tf.constant(where.numpy() * self.weight_matrix.numpy())
-		self.output_weight_matrix = output_weight_matrix
-		self.activation = init_activations
+		self.output_weight_matrix = tf.constant(tf.identity(output_weight_matrix))
+		self.activation = tf.constant(tf.identity(init_activations))
 		self.activation_func = activation_func
 		self.output_nonlinearity = output_nonlinearity
 		self.time_const = time_constant
@@ -136,7 +136,7 @@ class RNN:
 				result = tf.cast(result, 'float32')
 		return result
 
-	def simulate(self, time, inputs = tf.constant([[]]), input_weight_matrix = tf.constant([[]]),
+	def simulate(self, time, inputs = None, input_weight_matrix = None,
 	 disable_progress_bar = False):
 		'''
 		Simulates timesteps of the network given by time.
@@ -155,26 +155,27 @@ class RNN:
 			Weight matrix that represents how to add inputs to each 
 			node. Has shape num_inputs x num_nodes. 
 		'''
-
-		if input_weight_matrix.dtype != tf.float32:
-			input_weight_matrix = tf.cast(input_weight_matrix, 'float32')
-		assert input_weight_matrix.shape[0] == inputs.shape[1]
-		assert input_weight_matrix.shape[1] == self.num_nodes
+		num_timesteps = int(time//self.timestep)
+		if input_weight_matrix != None:
+			assert input_weight_matrix.shape[0] == inputs.shape[1]
+			assert input_weight_matrix.shape[1] == self.num_nodes
+			assert inputs.shape[0] == num_timesteps
+			if input_weight_matrix.dtype != tf.float32:
+				input_weight_matrix = tf.cast(input_weight_matrix, 'float32')
 
 		compiled_activations = []
 		compiled_outputs = []
-		num_timesteps = int(time//self.timestep)
-		assert inputs.shape[0] == num_timesteps
+		
 		c = self.timestep/self.time_const
 
-		if input_weight_matrix != tf.constant([[]]):
+		if input_weight_matrix != None:
 			add_inputs = tf.linalg.matmul(inputs, input_weight_matrix)
 
 		for t in tqdm(range(num_timesteps), position = 0, leave = True, disable = disable_progress_bar):
 			curr = self.activation
 
 			add_inputs_t = 0
-			if input_weight_matrix != tf.constant([[]]):	
+			if input_weight_matrix != None:	
 				add_inputs_t = tf.transpose([add_inputs[t]])
 				
 			nxt = (1 - c) * curr + c * self.activation_func(\
