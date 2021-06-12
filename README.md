@@ -2,8 +2,6 @@
 
 Implementations of a general Recurrent Neural Network classes that is trained using the Adam optimizer implemented by Tensorflow. We will use Dynamics Components Analysis and other statistical analysis techniques to map its activity onto low-dimensional subspaces and understand how network dynamics change during and after the training period.
 
-See the initial results at init_results.pdf or the main hypotheses we are pursuing at RNN_initial_hypotheses.pdf for more information.
-
 Gradient descent method based on the paper "Training Excitatory-Inhibitory Recurrent Neural Networks for Cognitive Tasks: A Simple and Flexible Framework" (2016) by Song et. al.
 
 We have done initial analysis on tasks similar to those used in the paper, "Task representations in neural networks trained to
